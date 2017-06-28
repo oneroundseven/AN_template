@@ -1,0 +1,155 @@
+﻿<!DOCTYPE html>
+<!--
+	NOTES:
+	1. All tokens are represented by '$' sign in the template.
+	2. You can write your code only wherever mentioned.
+	3. All occurrences of existing tokens will be replaced by their appropriate values.
+	4. Blank lines will be removed automatically.
+	5. Remove unnecessary comments before creating your template.
+-->
+
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="authoring-tool" content="$VERSION">
+<title>$TITLE</title>
+<!-- write your code here -->
+$CENTER_STYLE
+$CREATEJS_LIBRARY_SCRIPTS
+$ANIMATE_CC_SCRIPTS
+$SCRIPT_START
+var canvas, stage, exportRoot, anim_container, dom_overlay_container, fnStartAnimation;
+function init() {
+	canvas = document.getElementById("$CANVAS_ID");
+	anim_container = document.getElementById("$ANIM_CONTAINER_ID");
+	dom_overlay_container = document.getElementById("dom_overlay_container");
+	$CREATE_LOADER
+	$LOAD_MANIFEST
+	$PRELOAD_ASSETS
+}
+$HANDLE_FILE_LOAD_START	
+	$HANDLE_FILE_LOAD_BODY	
+$HANDLE_FILE_LOAD_END
+$HANDLE_COMPLETE_START
+	//This function is always called, irrespective of the content. You can use the variable "stage" after it is created in token create_stage.
+	$CREATE_STAGE	
+	//Registers the "tick" event listener.
+	$START_ANIMATION	    
+	//Code to support hidpi screens and responsive scaling.
+	$RESP_HIDPI	
+$HANDLE_COMPLETE_END
+$PLAYSOUND
+$SCRIPT_END
+<script>
+	var scripts = document.getElementsByTagName('script'),
+		AN_objName = scripts[2].innerHTML.match(/new lib\.(.*?)\(\)/)[1],
+		AN_script = scripts[1].innerHTML;
+
+	// filter global var
+	var row1 = '(function (lib, img, cjs, ss, an) {',
+		row2 = '})(lib = lib||{}, images = images||{}, createjs = createjs||{}, ss = ss||{}, AdobeAn = AdobeAn||{});',
+		row3 = 'var lib, images, createjs, ss, AdobeAn;';
+
+	if (AN_script) {
+		AN_script = AN_script.replace(row1, '(function(obj) { var lib = {}, img = {}, cjs = createjs || {}, ss = {}, an = {};');
+		AN_script = AN_script.replace(row2, 'obj.lib = lib; obj.images = img; obj.createjs = cjs; obj.ss = ss; obj.AdobeAn = an; })(AN["'+ AN_objName +'"]);');
+		AN_script = AN_script.replace(row3, '');
+	}
+
+	var customCode = 'if (typeof window.AN === "undefined") { window.AN = {}; } AN["'+ AN_objName +'"] = {};';
+	var initCode = '' +
+		'AN["'+ AN_objName +'"].initialize = function(id, callback) { ' +
+			'if (this._initFlag) { throw "repeat initialize."; return; } ' +
+			'var an_object = document.getElementById("'+ AN_objName +'"); ' +
+			'var an = AN["'+ AN_objName +'"];' +
+			'var lib = an.lib;' +
+			'if (id) { an_object = document.getElementById(id); } ' +
+			'if (an_object) { ' +
+				'var _canvas = document.createElement("canvas"); ' +
+				'_canvas.width = lib.properties.width; ' +
+				'_canvas.height = lib.properties.height;  ' +
+				'an_object.appendChild(_canvas); ' +
+				'if (lib.properties.manifest.length > 0) {' +
+					'var loader = new createjs.LoadQueue(false);'+
+        			'loader.addEventListener("fileload", handleFileLoad);' +
+    				'loader.addEventListener("complete", handleComplete);' +
+    				'loader.loadManifest(lib.properties.manifest);' +
+				'} else {'+
+					'__render(); ' +
+				'}' +
+				'this._initFlag = true; ' +
+			'} else { ' +
+				'throw "please set correct dom id argument."; ' +
+			'} ' +
+			'function __render() {' +
+				'var exportRoot = new lib.'+ AN_objName +'(); ' +
+				'var stage = new createjs.Stage(_canvas); ' +
+				'stage.addChild(exportRoot); ' +
+				'createjs.Ticker.setFPS(lib.properties.fps); ' +
+				'createjs.Ticker.addEventListener("tick", stage); ' +
+				'callback && callback(exportRoot); ' +
+			' }' +
+			'function handleFileLoad(evt) { if (evt.item.type == "image") { an.images[evt.item.id] = evt.result; }	 }' +
+        	'function handleComplete(evt) { ' +
+				'var queue = evt.target; ' +
+				'var ssMetadata = lib.ssMetadata; ' +
+				'for(var i=0; i<ssMetadata.length; i++) {'+
+					'an.ss[ssMetadata[i].name] = new createjs.SpriteSheet( {"images": [queue.getResult(ssMetadata[i].name)], "frames": ssMetadata[i].frames} )'+
+				'}'+
+        		'__render(); ' +
+			'}' +
+		'}';
+
+
+	AN_script = customCode + AN_script + initCode;
+
+	window.addEventListener('load', function() {
+		var outContainer = document.createElement('div');
+		outContainer.id = AN_objName;
+		document.body.appendChild(outContainer);
+		document.getElementById('sourceOut').innerHTML = AN_script;
+		eval(AN_script);
+		setTimeout(function() {
+			window.test = new AN[AN_objName].initialize();
+		}, 500);
+	}, false);
+</script>
+<script type="text/sourceOut" id="sourceOut"></script>
+<!-- write your code here -->
+</head>
+<body onload="init()" style="margin:0px;">
+	<div id="$ANIM_CONTAINER_ID" style="background-color:$BG; width:$WTpx; height:$HTpx">
+		<canvas id="$CANVAS_ID" width="$WT" height="$HT" style="position: absolute; display: $CANVAS_DISP; background-color:$BG;"></canvas>
+		<div id="dom_overlay_container" style="pointer-events:none; overflow:hidden; width:$WTpx; height:$HTpx; position: absolute; left: 0px; top: 0px; display: $CANVAS_DISP;">
+		</div>
+	</div>
+    $PRELOADER_DIV
+
+    <p>下面如果不出一样的动效说明出问题了</p>
+    <p>对外全局变量: AN</p>
+    <pre>
+    	AN[flaName] = {
+    		libs: {
+    			properties: {
+					width: 460,
+					height: 400,
+					fps: 30,
+					olor: "#FFFFFF",
+					opacity: 1.00,
+					manifest: [],
+					preloads: []
+				}
+    		},
+    		images: [], // 图片 未测试
+    		initialize: function(id, callback) {}, // 可传入id或者直接页面上已经有存在的容器则直接渲染进去 回调返回动画对象 支持多实例
+    		_virtual_controller: { // 动画对象， 无此api 只针对动画对象说明
+    			loop: '',
+    			gotoAndPlay: function() {},
+    			gotoAndStop: function() {},
+    			play: function() {},
+    			stop: function() {}
+    		}
+    	}
+    </pre>
+</body>
+</html>
